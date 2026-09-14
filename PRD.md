@@ -1,42 +1,173 @@
-# 声の掲示板
+# PRD — 声の掲示板
 
-声で「やってみたいこと」を投稿し、匿名のまま他の人と共有できるアプリ。文字だけでは伝わりにくい気持ちや勢いを、短い音声として残す。
+## 1. Product
 
-## 誰が使うか
+**声の掲示板**は、「やってみたい」を短い声として置き、誰かが聴き、実際にやってみた結果をproofとして返す場。
 
-「これをやってみたい」「こんなことを試してほしい」と思った人。ログインせず、PCやスマートフォンのブラウザから気軽に投稿する。投稿者を特定する必要はなく、端末単位で利用を管理する。
+```text
+声を聴く
+  ↓
+やってみたい
+  ↓
+声を置く
+  ↓
+誰かがやってみる
+  ↓
+proof
+  ↓
+また声を聴く
+```
 
-## できること
+## 2. User
 
-1. ログインせずに端末IDだけで利用できる
-2. 欲しいもの・やりたいことを wish として投稿し、#タグを付けられる
-3. 長押しで短い音声を録音し、音声を投稿できる
-4. 投稿された音声を「泡（バブル）」として表示し、押して再生できる
-5. `shiritori` / `savon` / `mcd` など、投稿する部屋を分けられる
-6. wish に対して「やってみた」という proof を投稿できる
-7. #タグから関連する投稿を探せる
-8. 音声処理は音声エンジンが担当し、録音データを再生可能な形式として保存する
+ログインせず、スマートフォンまたはPCのブラウザから使う。
+投稿者の本人性ではなく、**その場に置かれた声と経験**を中心にする。
 
-## 今回やらないこと
+## 3. MVP experience
 
-- **ユーザー登録・ログイン** — 匿名で使えることを優先するため
-- **長時間の音声配信** — 短い投稿と再生に絞るため
-- **音声の高度な編集** — 録音から再生までをまず成立させるため
-- **複雑なSNS機能（フォロー・DMなど）** — 投稿・proof・タグ検索に集中するため
-- **本番データベースの方式確定** — Neon / Supabase / Cloud SQL などは運用条件を見て決めるため
-- **細かなビジュアルデザイン** — 投稿・録音・再生が動いてから仕上げるため
+### Listen
+投稿されたVoiceをバブルとして見る。押して再生する。
 
-## データをどう扱うか
+### Wish
+「やってみたいこと」を短く投稿する。
 
-**Rails を中心に投稿・部屋・proof・音声投稿を管理する。** 投稿者は device_id で匿名識別する。音声処理は Elixir の voice engine に分離し、録音データを WAV / PNG 化して保存・配信する。
+### Record
+長押しして録音し、離すとプレビュー、確認後に投稿する。
 
-## 完成判定
+### Organize
+RoomとTagで投稿をまとめる。
 
-- ログインなしで wish を1件投稿できる
-- #タグを付けた投稿が一覧に表示される
-- 長押し録音から音声投稿を1件作成できる
-- 音声投稿が泡として表示され、押すと再生できる
-- wish に proof を1件投稿できる
-- タグ検索で該当する投稿を表示できる
-- 端末ごとの投稿上限が機能する
-- Rails と voice engine がそれぞれヘルスチェック可能である
+### Try / Proof
+Wishを見て実行した人がProofを返す。
+
+### AI assist
+MastraがWish / Voiceを解析し、`intent`、`tags`、`room candidate`などの候補を返す。
+AIは公開内容を勝手に確定しない。
+
+## 4. MVP scope
+
+- anonymous `device_id`
+- Voice投稿 / 再生
+- Wish投稿
+- Proof投稿
+- Room
+- Tag
+- 長押し録音
+- バブルUI
+- Mastraによる投稿構造化
+- Hono API
+- E2E / CI
+
+## 5. Non-goals
+
+- login / account
+- follow / DM
+- 長時間配信
+- 高度な音声編集
+- 完全自律Agent
+- 複雑な推薦
+- Event Sourcing / CQRS
+- 本番DBの早期固定
+- 高度なrealtime
+
+## 6. Architecture
+
+```text
+FE
+ │
+ ▼
+Hono
+ │
+ ├── Application
+ │      │
+ │      └── Domain
+ │           ├── Wish
+ │           ├── Voice
+ │           ├── Proof
+ │           ├── Room
+ │           └── Tag
+ │
+ └── Intelligence Adapter
+          │
+          ▼
+        Mastra
+          │
+          ▼
+        Insight
+```
+
+Rails / Elixirの既存実装は移植しない。
+
+## 7. FE decision
+
+Hono JSX / HTMX / React を比較する。
+
+共通PoC:
+
+- Voice list
+- long-press recording
+- playback
+- bubble UI
+- Wish
+- Room
+- Mastra suggestion
+
+PoC後に1方式を決定する。
+
+## 8. API first draft
+
+```text
+GET  /healthz
+GET  /api/voices
+POST /api/voices
+GET  /api/voices/:id
+POST /api/wishes
+GET  /api/wishes
+POST /api/wishes/:id/proofs
+GET  /api/tags/:tag
+GET  /api/rooms/:room
+POST /api/ai/analyze
+```
+
+APIはApplication Use Caseを公開する薄い境界とする。
+
+## 9. Data
+
+### Device
+
+`device_id`
+
+### Wish
+
+`id / device_id / room_id / content / tags / created_at`
+
+### Voice
+
+`id / device_id / wish_id? / room_id / audio_asset_id / duration / created_at`
+
+### Proof
+
+`id / device_id / wish_id / content? / voice_id? / created_at`
+
+### Room
+
+`id / name`
+
+### Tag
+
+`name`
+
+## 10. Definition of Done
+
+```text
+anonymous open
+ → listen
+ → record
+ → post
+ → AI suggestion
+ → bubble
+ → try
+ → proof
+```
+
+この一連の体験がブラウザで動き、HonoのテストとE2EがCIで通ること。
