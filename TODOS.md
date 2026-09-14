@@ -1,28 +1,93 @@
-# TODO
+# TODOS
 
-| # | やること | 完了定義 | 状態 |
-|---|---|---|---|
-| 1 | Rails アプリの基本画面と投稿モデルを作る | ブラウザで開くと投稿画面と投稿一覧が表示される | 未 |
-| 2 | device_id だけで匿名利用できるようにする | ログインなしで端末を識別して投稿できる | 未 |
-| 3 | wish の投稿欄を作り、#タグを保存する | wish とタグを投稿すると一覧に表示される | 未 |
-| 4 | room を作り、投稿先を分離する | `shiritori` / `savon` / `mcd` を選んで投稿できる | 未 |
-| 5 | proof を投稿できるようにする | wish に対して「やってみた」投稿を1件追加できる | 未 |
-| 6 | タグ検索を実装する | `/tags/:tag` で該当タグの投稿だけ表示される | 未 |
-| 7 | 長押し録音のUIを作る | 長押し開始で録音し、離すと録音が終了する | 未 |
-| 8 | Rails から voice engine に音声データを渡す | 音声投稿APIを呼ぶと voice engine がデータを受け取る | 未 |
-| 9 | voice engine で音声を保存・再生可能な形式にする | WAV を処理して PNG として保存し、取得APIから返せる | 未 |
-| 10 | 音声を泡（バブル）として一覧表示する | 音声投稿が泡として表示され、押すと再生される | 未 |
-| 11 | 端末ごとの音声投稿上限を実装する | 1デバイス最大4件まで投稿でき、残り件数が表示される | 未 |
-| 12 | Rails と voice engine のヘルスチェックを作る | Rails 側と `/healthz` の両方が正常応答する | 未 |
-| 13 | Rails のテストを追加する | wish / room / proof / voice API の主要ケースがCIで通る | 未 |
-| 14 | Cloud Run 用のデプロイ設定を整える | Rails を port 8080、voice engine を別サービスとして起動できる | 未 |
-| 15 | 本番DBの方式を決める | Neon / Supabase / Cloud SQL のいずれかを選び、接続方法を文書化する | 未 |
+## Phase 0 — Foundation
 
-## 今回やらないこと
+| # | TODO | Done |
+|---|---|---|
+| 1 | Hono + TypeScriptの最小アプリを作る | [ ] |
+| 2 | `/healthz` を実装する | [ ] |
+| 3 | test / lint / typecheck をCIで動かす | [ ] |
+| 4 | Domain / Application / Infrastructure の境界を作る | [ ] |
 
-- ユーザー登録・ログイン — 匿名利用を優先するため
-- 長時間の音声配信 — 短い音声投稿に集中するため
-- 音声の高度な編集 — 録音から再生までを先に成立させるため
-- フォロー・DMなどの複雑なSNS機能 — wish / proof / タグ検索に集中するため
-- 本番DBの方式を実装前に固定する — 運用条件を確認してから決めるため
-- 細かなビジュアルデザイン — 機能が動いてから仕上げるため
+## Phase 1 — Domain
+
+| # | TODO | Done |
+|---|---|---|
+| 5 | DeviceId / Wish / Voice / Proof / Room / Tagを定義する | [ ] |
+| 6 | Wish作成Use Caseを実装する | [ ] |
+| 7 | Voice投稿Use Caseを実装する | [ ] |
+| 8 | Proof作成Use Caseを実装する | [ ] |
+| 9 | Room / Tag検索Use Caseを実装する | [ ] |
+
+## Phase 2 — Voice
+
+| # | TODO | Done |
+|---|---|---|
+| 10 | Browser MediaRecorderで録音する | [ ] |
+| 11 | 録音プレビューと再生を実装する | [ ] |
+| 12 | Voice APIを実装する | [ ] |
+| 13 | VoiceをバブルUIで表示する | [ ] |
+| 14 | 音声保存方式を決める | [ ] |
+
+## Phase 3 — FE PoC
+
+| # | TODO | Done |
+|---|---|---|
+| 15 | Hono JSX PoC | [ ] |
+| 16 | HTMX PoC | [ ] |
+| 17 | React PoC | [ ] |
+| 18 | 3方式を録音 / 再生 / バブルUIで比較する | [ ] |
+| 19 | FE方式を1つに決定する | [ ] |
+
+## Phase 4 — Mastra
+
+| # | TODO | Done |
+|---|---|---|
+| 20 | Mastra Adapterの境界を作る | [ ] |
+| 21 | `AnalyzePost` Use Caseを作る | [ ] |
+| 22 | intent / tags / room candidateを生成する | [ ] |
+| 23 | AI結果をInsightとして扱う | [ ] |
+| 24 | AI候補をユーザー確定値と分離する | [ ] |
+
+## Phase 5 — MVP
+
+| # | TODO | Done |
+|---|---|---|
+| 25 | Wish投稿 | [ ] |
+| 26 | Voice投稿 | [ ] |
+| 27 | Proof投稿 | [ ] |
+| 28 | Room | [ ] |
+| 29 | Tag検索 | [ ] |
+| 30 | device単位の制限 | [ ] |
+| 31 | E2EでCore Loopを固定する | [ ] |
+| 32 | README / PRD / MVP / DDDと実装を一致させる | [ ] |
+
+## Core Loop
+
+```text
+open
+ ↓
+listen
+ ↓
+wish / voice
+ ↓
+Mastra insight
+ ↓
+post
+ ↓
+try
+ ↓
+proof
+ ↓
+listen
+```
+
+## 原則
+
+- Railsを移植しない
+- Elixir voice engineを移植しない
+- まずHonoの最小実装から始める
+- FEはPoC後に決める
+- MastraはAI境界に閉じ込める
+- DDDを実装量の増加理由にしない
+- E2Eでユーザー体験を先に固定する
