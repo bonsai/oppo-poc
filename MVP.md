@@ -1,75 +1,177 @@
 # MVP
 
-## 声の掲示板
+## 声の掲示板 / Voice Space
 
-「やってみたい」を、文字ではなく**声**で投稿し、他の人の声を聴き、「やってみた」につなげる最小プロダクト。
+「やってみたい」「やってみた」「今日あったこと」を、文字や画面操作ではなく**声**で残し、声で聴き、声で呼び出す最小プロダクト。
+
+このプロダクトは、日記帳・交換日記・グループ日記・掲示板のどれにもなれる。
+参加者数は **1人から無限**。形式を先に固定せず、声を誰と共有するかで関係が変わる。
+
+```text
+1人       → 声の日記
+2人       → 声の交換日記
+少人数    → グループ日記
+多数/無限 → 声の掲示板
+```
+
+## 中心原則
+
+**すべて声で操作する。GUIはない。**
+
+画面は操作対象ではなく、音声を扱うための実行環境にすぎない。
+
+- ボタンを押して操作しない
+- メニューを選択しない
+- フォームに入力しない
+- タグを手で付けない
+- 声で命令する
+- 声で結果を受け取る
+
+MVPの基本ループ:
+
+```text
+🎙️ 声を入力
+   ↓
+音声認識 / Intent解析
+   ↓
+TypeScript Command
+   ↓
+Domain
+   ↓
+結果
+   ↓
+🔊 音声で返す
+```
 
 ## 目的
 
-匿名で気軽に声を投稿できる場を作る。
+匿名で気軽に声を残し、後から大量の声の中から必要な声を**会話で再発見できる場**を作る。
 
-最初からSNSや高度なAIサービスを作るのではなく、
+重要なのは単なる音声保存ではない。
 
-**声を投稿する → 聴く → やってみる → proofを返す**
+**声を残す → 声を聴く → 意味を掴む → 必要な声を呼び出す → 返事する / やってみる**
 
-という体験を成立させる。
+を成立させる。
 
 ## 技術方針
 
-- Hono + TypeScript を中心にゼロから実装
-- FE方式は Hono JSX / HTMX / React を比較して決定
-- Mastra はAI / Agent層として利用
+- TypeScriptを中心に実装
+- HonoをAPI / Application境界として利用
+- ブラウザの音声入力・録音・再生をTypeScriptから扱う
+- STT / Intent解析 / TTSはPortを介して疎結合にする
+- MastraはAI / Agent層として利用可能にする
 - FEからMastraへ直接依存しない
-- Hono APIをアプリケーションとAIの境界にする
-- 既存の Rails / Elixir 実装は移植しない
+- AIはDomainを直接変更しない
+- 既存のRails / Elixir実装は移植しない
 
 ```text
 Browser
-   │
-   ▼
-FE
-   │
-   ▼
-Hono
-   ├── Voice API
-   ├── Wish API
-   ├── Proof API
-   └── Room / Tag API
+  │
+  ├── 🎙️ Audio Input
+  ├── STT
+  └── 🔊 Audio Output
           │
           ▼
-       Mastra
-       AI / Agent
+     TypeScript Runtime
+          │
+          ▼
+     Intent / Command
+          │
+          ▼
+        Hono
+          │
+          ▼
+      Application
+          │
+          ▼
+        Domain
+     ┌────┼────┐
+   Voice Space Wish Proof
+          │
+          ▼
+   Intelligence Adapter
+          │
+        Mastra
 ```
 
 ## MVPユーザー体験
 
 ### 1. 開く
 
-ログインなしで声の掲示板を開く。
+ログインなしで声空間を開く。
 
-### 2. 聴く
+画面を操作する必要はない。
 
-投稿された声がバブルとして並んでいる。
+### 2. 声を残す
 
-バブルを押すと音声を再生する。
+ユーザーが話す。
 
-### 3. 投稿する
+例:
 
-「長押しして話す」ことで短い音声を録音する。
+> 今日、浅草に行ってきた。
+
+音声を保存し、STTによる文字起こしを検索用インデックスとして保持する。
+
+### 3. 声を呼び出す
+
+大量の声を画面から探さない。
+
+例:
+
+> 昨日の声を聞かせて
+
+> 海の話、どれだっけ？
+
+> 先週の浅草の話を聞きたい
+
+> この人との交換日記、続きから
 
 ```text
-press
-  ↓
-recording
-  ↓
-release
-  ↓
-preview
-  ↓
-post
+音声命令
+   ↓
+Intent
+   ↓
+検索条件
+   ↓
+Voice Repository
+   ↓
+対象Voice
+   ↓
+音声再生
 ```
 
-### 4. wish
+### 4. 曖昧な検索
+
+自然な会話だけでは対象を一意に決められない場合、アプリが声で確認する。
+
+```text
+ユーザー
+「昨日のやつ聞かせて」
+
+アプリ
+「日記と交換日記、どちらですか？」
+
+ユーザー
+「交換日記」
+```
+
+### 5. 返事する
+
+現在聴いている声に対して、声で返事する。
+
+> これに返事したい
+
+```text
+現在のVoice
+   ↓
+Reply Command
+   ↓
+音声録音
+   ↓
+Reply Voice
+```
+
+### 6. wish
 
 声に「やってみたいこと」を含める。
 
@@ -77,29 +179,49 @@ post
 
 > 海辺で朝ごはん食べたい
 
-### 5. AI補助
-
-Mastraが投稿内容を解析し、タグやroomの候補を返す。
+AIは内容を解析し、検索・整理用の構造化情報を作る。
 
 ```json
 {
-  "text": "海辺で朝ごはん食べたい",
+  "intent": "wish",
   "tags": ["海", "朝食", "旅行"],
-  "room": "mcd"
+  "room": "travel"
 }
 ```
 
-最終的な投稿内容はユーザーまたはアプリ側で確定する。AIが勝手に公開投稿を確定することはMVPでは行わない。
+AIが勝手に公開投稿を確定することはMVPでは行わない。
 
-### 6. proof
+### 7. proof
 
-他の人のwishを見て、実際にやってみたらproofを投稿できる。
+誰かのwishを実際にやってみたら、声でproofを返す。
+
+> やってみた。浅草で朝ごはん食べてきたよ。
 
 ```text
-wish
+Wish
   │
-  └── proof
+  └── Proof Voice
 ```
+
+## Voice Space
+
+日記・交換日記・掲示板を別のプロダクトとして実装しない。
+
+**Spaceに参加する人数と関係性によって見え方が変わる。**
+
+```text
+Space
+ ├── Participant 1人
+ │     └── Diary
+ ├── Participant 2人
+ │     └── Exchange Diary
+ ├── Participant 3..n人
+ │     └── Group
+ └── Participant n人
+       └── Public Board
+```
+
+参加人数そのものをモードとして固定せず、`Space` と `Participant` の関係として表現する。
 
 ## MVPデータ
 
@@ -109,69 +231,94 @@ wish
 
 ### Voice
 
+- id
 - device_id
-- room
-- 音声データ
-- 投稿日時
-- 関連wish
+- space_id
+- audio_asset_id
+- transcript
+- created_at
+- parent_voice_id?
+- wish_id?
+- intent
+- tags
+
+### Space
+
+- id
+- visibility
+- created_at
+
+### Participant
+
+- id
+- space_id
+- device_id
+- joined_at
 
 ### Wish
 
+- id
+- voice_id
 - device_id
-- 本文または音声
+- space_id
+- intent
 - tags
-- room
-- 投稿日時
+- created_at
 
 ### Proof
 
-- device_id
+- id
 - wish_id
-- 本文または音声
-- 投稿日時
+- voice_id
+- device_id
+- created_at
 
-## MVP画面
+## Voice検索
 
-### `/`
+MVPでは「大量の声を聞き直す問題」を最重要課題のひとつとして扱う。
 
-メインの声空間。
+検索はGUIの一覧操作ではなく、音声命令から行う。
 
-- voice bubbles
-- 録音ボタン
-- room
-- tags
-- wish / proofへの導線
+検索可能な軸:
 
-### `/post`
+- 時間
+- Space
+- 相手 / Participant
+- transcript
+- topic / tags
+- intent
+- Wish / Proof
+- 前後関係
 
-投稿画面。
+将来的にはembeddingによる意味検索へ拡張するが、MVPでは文字起こし + 構造化メタデータを基本とする。
 
-- 長押し録音
-- 録音状態
-- プレビュー
-- 投稿
-- AIタグ候補
+## MVP音声コマンド
 
-### `/tags/:tag`
+最低限、以下を成立させる。
 
-タグによる投稿検索。
+```text
+「声を残す」
+「昨日の声を聞かせて」
+「海の話を聞かせて」
+「この声に返事したい」
+「やってみたいことを残す」
+「これ、やってみた」
+「この人との交換日記を続けたい」
+```
 
-### `/rooms/:room`
-
-roomごとの投稿一覧。
+自然言語の揺れはIntent解析で吸収する。
 
 ## MVP API
 
 ```text
 GET  /healthz
-GET  /api/voices
 POST /api/voices
 GET  /api/voices/:id
+POST /api/voices/search
 POST /api/wishes
-GET  /api/wishes
 POST /api/wishes/:id/proofs
-GET  /api/tags/:tag
-GET  /api/rooms/:room
+POST /api/spaces
+POST /api/spaces/:id/participants
 POST /api/ai/classify
 ```
 
@@ -181,40 +328,34 @@ APIの具体的な入出力は実装時に確定する。
 
 Mastraは「何でも自律的に行うAgent」にはしない。
 
-最初は以下の1本を成立させる。
+MVPでは、音声からDomainで扱える構造化情報を作る補助層とする。
 
 ```text
-投稿
- ↓
-Mastra
- ↓
-構造化
- ↓
-tags / room / intent
+Voice / Transcript
+       ↓
+     Mastra
+       ↓
+intent / tags / topic / target candidate
+       ↓
+TypeScript Command
+       ↓
+Domain
 ```
 
-将来的には、投稿間の関係、proofの発見、roomの生成、推薦などへ拡張できる。
+AIは検索対象の選択候補を作れるが、Domain操作を勝手に確定・実行しない。
 
-## FE MVP
+## GUIを作らない
 
-FE方式はIssue #3で比較する。
+従来想定していた以下のUIはMVP要件から外す。
 
-比較対象:
+- voice bubbles
+- 録音ボタン
+- 投稿フォーム
+- room切替UI
+- tags一覧UI
+- `/post` の画面操作
 
-1. Hono JSX
-2. HTMX
-3. React
-
-共通PoCでは、少なくとも以下を比較する。
-
-- wish投稿
-- 長押し録音
-- 音声再生
-- バブルUI
-- room切替
-- Mastraタグ候補
-
-**MVP実装開始時点ではFE方式を固定しない。** PoCの結果で決定する。
+画面上に情報を表示すること自体を禁止するわけではないが、**操作はすべて音声で完結すること**をMVPの完成条件とする。
 
 ## 今回やらないこと
 
@@ -226,30 +367,33 @@ FE方式はIssue #3で比較する。
 - 完全自律型AI Agent
 - 本番DBの早期固定
 - 高度なリアルタイム機能
-- 細かなデザインの作り込み
+- GUI中心のUX
+- embedding検索の必須化
 
 ## 完成判定
 
-以下の一連の体験がブラウザで成立すること。
+以下の一連の体験が、画面を操作せずブラウザ上の音声だけで成立すること。
 
 ```text
 匿名で開く
    ↓
+声を残す
+   ↓
+AIが意味を解析
+   ↓
+「昨日の声を聞かせて」
+   ↓
+該当する声を検索
+   ↓
 声を聴く
    ↓
-長押しして声を録音
+「これに返事したい」
    ↓
-投稿
+返事を録音
    ↓
-Mastraがタグ / room候補を生成
+「やってみた」
    ↓
-声がバブルとして表示される
-   ↓
-他の人が聴く
-   ↓
-やってみる
-   ↓
-proofを投稿
+WishにProof Voiceを返す
 ```
 
 さらに、HonoのテストとE2EがCIで通ることを完成条件とする。
