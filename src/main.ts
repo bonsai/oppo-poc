@@ -10,6 +10,9 @@ const input = document.querySelector<HTMLTextAreaElement>('#transcript')!
 const list = document.querySelector<HTMLDivElement>('#voices')!
 const statusEl = document.querySelector<HTMLParagraphElement>('#status')!
 const submit = document.querySelector<HTMLButtonElement>('#submit')!
+const record = document.querySelector<HTMLButtonElement>('#record')!
+const speak = document.querySelector<HTMLButtonElement>('#speak')!
+const recordingTime = document.querySelector<HTMLSpanElement>('#recording-time')!
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => ({
@@ -29,11 +32,82 @@ const save = (voices: Voice[]) => localStorage.setItem(STORAGE_KEY, JSON.stringi
 const render = () => {
   const voices = load()
   list.innerHTML = voices.length
-    ? voices.map((voice) => `<article class="voice"><time>${escapeHtml(new Date(voice.createdAt).toLocaleString('ja-JP'))}</time><p>${escapeHtml(voice.transcript)}</p><button class="reply" data-text="${escapeHtml(voice.transcript)}">返事をもらう</button><p class="reply-text" hidden></p></article>`).join('')
+    ? voices.map((voice) => `<article class="voice"><time>${escapeHtml(new Date(voice.createdAt).toLocaleString('ja-JP'))}</time><p>${escapeHtml(voice.transcript)}</p><div class="voice-actions"><button class="reply" data-text="${escapeHtml(voice.transcript)}">返事をもらう</button><button class="play" data-text="${escapeHtml(voice.transcript)}">🔊 聴く</button></div><p class="reply-text" hidden></p></article>`).join('')
     : '<p class="empty">まだ声はありません。</p>'
 }
 
+const speakText = (text: string) => {
+  if (!('speechSynthesis' in window)) {
+    statusEl.textContent = 'このブラウザでは読み上げに対応していません。'
+    return
+  }
+  speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = 'ja-JP'
+  speechSynthesis.speak(utterance)
+}
+
 const localReply = (text: string) => `「${text}」を受け取りました。`
+
+let recognition: SpeechRecognition | null = null
+let startedAt = 0
+let timer: number | undefined
+
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
+if (SpeechRecognitionAPI) {
+  recognition = new SpeechRecognitionAPI()
+  recognition.lang = 'ja-JP'
+  recognition.continuous = true
+  recognition.interimResults = true
+
+  recognition.onstart = () => {
+    record.classList.add('recording')
+    record.textContent = '■ 録音を止める'
+    record.setAttribute('aria-pressed', 'true')
+    statusEl.textContent = '聴いています…'
+    startedAt = Date.now()
+    timer = window.setInterval(() => {
+      recordingTime.textContent = `${Math.floor((Date.now() - startedAt) / 1000)}秒`
+    }, 250)
+  }
+
+  recognition.onresult = (event) => {
+    let transcript = ''
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript
+    }
+    input.value = transcript.trim()
+  }
+
+  recognition.onerror = () => {
+    statusEl.textContent = '音声入力を開始できませんでした。文字でも入力できます。'
+  }
+
+  recognition.onend = () => {
+    record.classList.remove('recording')
+    record.textContent = '● 録音する'
+    record.setAttribute('aria-pressed', 'false')
+    if (timer) window.clearInterval(timer)
+    timer = undefined
+    recordingTime.textContent = ''
+  }
+} else {
+  record.disabled = true
+  record.title = 'このブラウザでは音声入力に対応していません'
+}
+
+record.addEventListener('click', () => {
+  if (!recognition) return
+  if (record.getAttribute('aria-pressed') === 'true') recognition.stop()
+  else recognition.start()
+})
+
+speak.addEventListener('click', () => {
+  const text = input.value.trim()
+  if (!text) return
+  speakText(text)
+  statusEl.textContent = '読み上げています。'
+})
 
 form.addEventListener('submit', (event) => {
   event.preventDefault()
@@ -50,11 +124,16 @@ form.addEventListener('submit', (event) => {
 })
 
 list.addEventListener('click', (event) => {
-  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.reply')
-  if (!button) return
-  const container = button.closest<HTMLElement>('.voice')!
+  const target = event.target as HTMLElement
+  const replyButton = target.closest<HTMLButtonElement>('.reply')
+  const playButton = target.closest<HTMLButtonElement>('.play')
+
+  if (playButton) speakText(playButton.dataset.text ?? '')
+  if (!replyButton) return
+
+  const container = replyButton.closest<HTMLElement>('.voice')!
   const reply = container.querySelector<HTMLElement>('.reply-text')!
-  reply.textContent = localReply(button.dataset.text ?? '')
+  reply.textContent = localReply(replyButton.dataset.text ?? '')
   reply.hidden = false
 })
 
