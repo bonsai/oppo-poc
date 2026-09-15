@@ -7,9 +7,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "mastra:dev": "mastra dev"
   },
   "devDependencies": {
+    "@mastra/cli": "latest",
+    "@mastra/core": "latest",
     "@types/node": "latest",
     "typescript": "latest",
     "vite": "latest",
