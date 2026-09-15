@@ -1,173 +1,124 @@
-# PRD — 声の掲示板
+# PRD — oppo Presence MVP
 
 ## 1. Product
 
-**声の掲示板**は、「やってみたい」を短い声として置き、誰かが聴き、実際にやってみた結果をproofとして返す場。
+**oppo** is an audio-first, presence-based voice experience.
+
+The user should not feel that they are operating a GUI. The default experience is a dark screen with a small light point. The agent is allowed to speak first, like an answering machine: the user enters the space, the agent notices the presence and begins with a short utterance.
+
+## 2. Problem
+
+Conventional chat interfaces require the user to look at the screen, find an input field, and initiate the conversation. This adds an unnecessary UI layer for a simple voice interaction.
+
+oppo tests whether a conversation can begin from **presence → agent voice → user voice → agent voice**, with the GUI becoming secondary.
+
+## 3. Goal
+
+Validate a minimal agent-first audio interaction that works on a static GitHub Pages site.
+
+### Success criteria
+
+1. Opening the page presents darkness and a small light point.
+2. The agent attempts a short first utterance without requiring a GUI action.
+3. The point communicates waiting / speaking / listening states.
+4. The user can answer by voice.
+5. The agent gives a local response by voice.
+6. Text input remains available only as a fallback/accessibility path.
+7. No backend or external AI API is required for the MVP.
+
+## 4. UX concept
 
 ```text
-声を聴く
+open
   ↓
-やってみたい
+暗闇 + 光点
   ↓
-声を置く
+agent: 「……いるよ。」
   ↓
-誰かがやってみる
+待つ
   ↓
-proof
+user voice
   ↓
-また声を聴く
+agent: local response
+  ↓
+待つ
 ```
 
-## 2. User
+The interaction should feel closer to a **留守番電話 / Q2-like voice presence** than to a chat application.
 
-ログインせず、スマートフォンまたはPCのブラウザから使う。
-投稿者の本人性ではなく、**その場に置かれた声と経験**を中心にする。
+## 5. Functional requirements
 
-## 3. MVP experience
+### FR-01 Agent-first greeting
 
-### Listen
-投稿されたVoiceをバブルとして見る。押して再生する。
+On first contact, attempt to speak a short Japanese greeting. Browser autoplay restrictions must not break the experience; a first user interaction can be used as fallback.
 
-### Wish
-「やってみたいこと」を短く投稿する。
+### FR-02 Voice input
 
-### Record
-長押しして録音し、離すとプレビュー、確認後に投稿する。
+Use browser Speech Recognition when available. The central point is the primary interaction target.
 
-### Organize
-RoomとTagで投稿をまとめる。
+### FR-03 Voice response
 
-### Try / Proof
-Wishを見て実行した人がProofを返す。
+Use browser Speech Synthesis for the agent response. The MVP response may be deterministic/local; an AI backend is explicitly out of scope.
 
-### AI assist
-MastraがWish / Voiceを解析し、`intent`、`tags`、`room candidate`などの候補を返す。
-AIは公開内容を勝手に確定しない。
+### FR-04 Presence state
 
-## 4. MVP scope
+The point must visually communicate at least idle / agent speaking / user listening.
 
-- anonymous `device_id`
-- Voice投稿 / 再生
-- Wish投稿
-- Proof投稿
-- Room
-- Tag
-- 長押し録音
-- バブルUI
-- Mastraによる投稿構造化
-- Hono API
-- E2E / CI
+### FR-05 Local persistence
 
-## 5. Non-goals
+Keep submitted voice transcripts in browser localStorage for the existing fallback/history implementation.
 
-- login / account
-- follow / DM
-- 長時間配信
-- 高度な音声編集
-- 完全自律Agent
-- 複雑な推薦
-- Event Sourcing / CQRS
-- 本番DBの早期固定
-- 高度なrealtime
+### FR-06 Fallback
 
-## 6. Architecture
+If speech recognition or synthesis is unavailable, the user can still use text input and the page must remain usable.
+
+## 6. Non-functional requirements
+
+- Static deployment on GitHub Pages.
+- TypeScript + Vite.
+- No server required.
+- No mandatory API key.
+- Mobile and desktop browser compatible where Web Speech APIs are supported.
+- The default visual surface must remain nearly invisible.
+- Accessibility labels must remain available even when visual controls are hidden.
+
+## 7. Non-goals
+
+- Full chat UI.
+- Avatar or character animation.
+- Dashboard / analytics UI.
+- Authentication.
+- Multi-user synchronization.
+- LLM API integration.
+- Conversation history as the primary screen.
+- Screen-operation-dependent conversation.
+
+## 8. Technical design
 
 ```text
-FE
- │
- ▼
-Hono
- │
- ├── Application
- │      │
- │      └── Domain
- │           ├── Wish
- │           ├── Voice
- │           ├── Proof
- │           ├── Room
- │           └── Tag
- │
- └── Intelligence Adapter
-          │
-          ▼
-        Mastra
-          │
-          ▼
-        Insight
+GitHub Pages
+    │
+    └── Vite static app
+          ├── TypeScript
+          ├── SpeechRecognition
+          ├── SpeechSynthesis
+          └── localStorage
 ```
 
-Rails / Elixirの既存実装は移植しない。
+The current application is frontend-only. The local response function is intentionally replaceable by a future agent runtime.
 
-## 7. FE decision
+## 9. Browser constraint
 
-Hono JSX / HTMX / React を比較する。
-
-共通PoC:
-
-- Voice list
-- long-press recording
-- playback
-- bubble UI
-- Wish
-- Room
-- Mastra suggestion
-
-PoC後に1方式を決定する。
-
-## 8. API first draft
-
-```text
-GET  /healthz
-GET  /api/voices
-POST /api/voices
-GET  /api/voices/:id
-POST /api/wishes
-GET  /api/wishes
-POST /api/wishes/:id/proofs
-GET  /api/tags/:tag
-GET  /api/rooms/:room
-POST /api/ai/analyze
-```
-
-APIはApplication Use Caseを公開する薄い境界とする。
-
-## 9. Data
-
-### Device
-
-`device_id`
-
-### Wish
-
-`id / device_id / room_id / content / tags / created_at`
-
-### Voice
-
-`id / device_id / wish_id? / room_id / audio_asset_id / duration / created_at`
-
-### Proof
-
-`id / device_id / wish_id / content? / voice_id? / created_at`
-
-### Room
-
-`id / name`
-
-### Tag
-
-`name`
+Browsers may block speech synthesis started without a user gesture. The implementation therefore uses **best effort agent-first speech** and a graceful first-touch fallback. This is a platform constraint, not a reason to restore a conventional GUI.
 
 ## 10. Definition of Done
 
-```text
-anonymous open
- → listen
- → record
- → post
- → AI suggestion
- → bubble
- → try
- → proof
-```
-
-この一連の体験がブラウザで動き、HonoのテストとE2EがCIで通ること。
+- [ ] Agent-first greeting is implemented.
+- [ ] Voice reply automatically produces an agent response.
+- [ ] Presence point communicates state.
+- [ ] GUI remains hidden/minimal by default.
+- [ ] Text fallback works.
+- [ ] `npm run typecheck` passes.
+- [ ] `npm run build` passes.
+- [ ] GitHub Pages deployment succeeds.
+- [ ] Issue #24 is satisfied.
