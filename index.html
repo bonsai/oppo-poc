@@ -3,30 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>oppo — 声の掲示板</title>
+    <meta name="theme-color" content="#020204" />
+    <title>oppo — presence</title>
     <link rel="stylesheet" href="./style.css" />
     <script src="https://unpkg.com/htmx.org@2.0.7"></script>
   </head>
   <body>
-    <main class="app">
+    <main class="app" aria-label="oppo">
       <header>
         <p class="eyebrow">oppo</p>
         <h1>声を置く。</h1>
-        <p>話す。聴く。返す。画面はそのためだけに。</p>
+        <p>話す。聴く。返す。</p>
       </header>
 
       <section class="composer" aria-labelledby="composer-title">
-        <h2 id="composer-title">今日の声</h2>
+        <h2 id="composer-title">oppo</h2>
         <form id="voice-form" hx-on:submit="return false">
           <div class="record-area">
-            <button id="record" class="record" type="button" aria-pressed="false">● 録音する</button>
+            <button id="record" class="record" type="button" aria-label="話しかける" aria-pressed="false">●</button>
             <span id="recording-time" class="recording-time" aria-live="polite"></span>
           </div>
           <label class="sr-only" for="transcript">声の内容</label>
-          <textarea id="transcript" name="transcript" required maxlength="500" placeholder="話すか、ここに書く"></textarea>
+          <textarea id="transcript" name="transcript" required maxlength="500" placeholder="話す"></textarea>
           <div class="actions">
             <button id="submit" type="submit">声を置く</button>
-            <button id="speak" type="button" class="secondary">🔊 聴く</button>
+            <button id="speak" type="button" class="secondary">聴く</button>
           </div>
         </form>
         <p id="status" class="status" role="status"></p>
