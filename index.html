@@ -10,21 +10,30 @@
   <body>
     <main class="app">
       <header>
-        <h1>声の掲示板</h1>
-        <p>名前もフォローもない。今日の声をひとつ。</p>
+        <p class="eyebrow">oppo</p>
+        <h1>声を置く。</h1>
+        <p>話す。聴く。返す。画面はそのためだけに。</p>
       </header>
 
       <section class="composer" aria-labelledby="composer-title">
-        <h2 id="composer-title">声を置く</h2>
+        <h2 id="composer-title">今日の声</h2>
         <form id="voice-form" hx-on:submit="return false">
-          <textarea id="transcript" name="transcript" required maxlength="500" placeholder="いま思っていることを書いてください"></textarea>
-          <button id="submit" type="submit">声を置く</button>
+          <div class="record-area">
+            <button id="record" class="record" type="button" aria-pressed="false">● 録音する</button>
+            <span id="recording-time" class="recording-time" aria-live="polite"></span>
+          </div>
+          <label class="sr-only" for="transcript">声の内容</label>
+          <textarea id="transcript" name="transcript" required maxlength="500" placeholder="話すか、ここに書く"></textarea>
+          <div class="actions">
+            <button id="submit" type="submit">声を置く</button>
+            <button id="speak" type="button" class="secondary">🔊 聴く</button>
+          </div>
         </form>
         <p id="status" class="status" role="status"></p>
       </section>
 
       <section aria-labelledby="voices-title">
-        <h2 id="voices-title">みんなの声</h2>
+        <h2 id="voices-title">声</h2>
         <div id="voices"></div>
       </section>
     </main>
