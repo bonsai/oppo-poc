@@ -1,25 +1,16 @@
 {
-  "name": "myapp",
+  "name": "oppo-poc",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy",
-    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "hono": "latest"
-  },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "latest",
-    "@cloudflare/workers-types": "latest",
     "@types/node": "latest",
     "typescript": "latest",
-    "vite": "latest",
-    "vitest": "latest",
-    "wrangler": "latest"
+    "vite": "latest"
   }
 }
