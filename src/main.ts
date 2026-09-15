@@ -1,3 +1,5 @@
+export {}
+
 interface SpeechRecognitionResultEvent extends Event {
   resultIndex: number
   results: SpeechRecognitionResultList
@@ -79,12 +81,13 @@ let timer: number | undefined
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
 if (SpeechRecognitionAPI) {
-  recognition = new SpeechRecognitionAPI()
-  recognition.lang = 'ja-JP'
-  recognition.continuous = true
-  recognition.interimResults = true
+  const recognizer = new SpeechRecognitionAPI()
+  recognition = recognizer
+  recognizer.lang = 'ja-JP'
+  recognizer.continuous = true
+  recognizer.interimResults = true
 
-  recognition.onstart = () => {
+  recognizer.onstart = () => {
     record.classList.add('recording')
     record.textContent = '■ 録音を止める'
     record.setAttribute('aria-pressed', 'true')
@@ -95,7 +98,7 @@ if (SpeechRecognitionAPI) {
     }, 250)
   }
 
-  recognition.onresult = (event) => {
+  recognizer.onresult = (event) => {
     let transcript = ''
     for (let i = event.resultIndex; i < event.results.length; i++) {
       transcript += event.results[i][0].transcript
@@ -103,11 +106,11 @@ if (SpeechRecognitionAPI) {
     input.value = transcript.trim()
   }
 
-  recognition.onerror = () => {
+  recognizer.onerror = () => {
     statusEl.textContent = '音声入力を開始できませんでした。文字でも入力できます。'
   }
 
-  recognition.onend = () => {
+  recognizer.onend = () => {
     record.classList.remove('recording')
     record.textContent = '● 録音する'
     record.setAttribute('aria-pressed', 'false')
