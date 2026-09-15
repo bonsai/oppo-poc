@@ -8,7 +8,7 @@ const STORAGE_KEY = 'oppo:voices'
 const form = document.querySelector<HTMLFormElement>('#voice-form')!
 const input = document.querySelector<HTMLTextAreaElement>('#transcript')!
 const list = document.querySelector<HTMLDivElement>('#voices')!
-const status = document.querySelector<HTMLParagraphElement>('#status')!
+const statusEl = document.querySelector<HTMLParagraphElement>('#status')!
 const submit = document.querySelector<HTMLButtonElement>('#submit')!
 
 const escapeHtml = (value: string) =>
@@ -44,7 +44,7 @@ form.addEventListener('submit', (event) => {
   const voice: Voice = { id: crypto.randomUUID(), transcript, createdAt: new Date().toISOString() }
   save([voice, ...load()])
   input.value = ''
-  status.textContent = '声を置きました。'
+  statusEl.textContent = '声を置きました。'
   render()
   submit.disabled = false
 })
