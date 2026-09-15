@@ -1,3 +1,5 @@
+import './style.css'
+
 export {}
 
 interface SpeechRecognitionResultEvent extends Event {
@@ -58,18 +60,17 @@ const save = (voices: Voice[]) => localStorage.setItem(STORAGE_KEY, JSON.stringi
 const render = () => {
   const voices = load()
   list.innerHTML = voices.length
-    ? voices.map((voice) => `<article class="voice"><time>${escapeHtml(new Date(voice.createdAt).toLocaleString('ja-JP'))}</time><p>${escapeHtml(voice.transcript)}</p><div class="voice-actions"><button class="reply" data-text="${escapeHtml(voice.transcript)}">返事をもらう</button><button class="play" data-text="${escapeHtml(voice.transcript)}">🔊 聴く</button></div><p class="reply-text" hidden></p></article>`).join('')
+    ? voices.map((voice) => `<article class="voice"><time>${escapeHtml(new Date(voice.createdAt).toLocaleString('ja-JP'))}</time><p>${escapeHtml(voice.transcript)}</p><div class="voice-actions"><button class="reply" data-text="${escapeHtml(voice.transcript)}">返事をもらう</button><button class="play" data-text="${escapeHtml(voice.transcript)}">聴く</button></div><p class="reply-text" hidden></p></article>`).join('')
     : '<p class="empty">まだ声はありません。</p>'
 }
 
 const speakText = (text: string) => {
-  if (!('speechSynthesis' in window)) {
-    statusEl.textContent = 'このブラウザでは読み上げに対応していません。'
-    return
-  }
+  if (!('speechSynthesis' in window)) return
   speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = 'ja-JP'
+  utterance.volume = 0.55
+  utterance.rate = 0.9
   speechSynthesis.speak(utterance)
 }
 
@@ -78,6 +79,7 @@ const localReply = (text: string) => `「${text}」を受け取りました。`
 let recognition: SpeechRecognition | null = null
 let startedAt = 0
 let timer: number | undefined
+let greeted = false
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
 if (SpeechRecognitionAPI) {
@@ -89,7 +91,6 @@ if (SpeechRecognitionAPI) {
 
   recognizer.onstart = () => {
     record.classList.add('recording')
-    record.textContent = '■ 録音を止める'
     record.setAttribute('aria-pressed', 'true')
     statusEl.textContent = '聴いています…'
     startedAt = Date.now()
@@ -107,34 +108,39 @@ if (SpeechRecognitionAPI) {
   }
 
   recognizer.onerror = () => {
-    statusEl.textContent = '音声入力を開始できませんでした。文字でも入力できます。'
+    statusEl.textContent = 'もう一度、点に触れてください。'
   }
 
   recognizer.onend = () => {
     record.classList.remove('recording')
-    record.textContent = '● 録音する'
     record.setAttribute('aria-pressed', 'false')
     if (timer) window.clearInterval(timer)
     timer = undefined
     recordingTime.textContent = ''
   }
 } else {
-  record.disabled = true
   record.title = 'このブラウザでは音声入力に対応していません'
 }
 
 record.addEventListener('click', () => {
-  if (!recognition) return
-  if (record.getAttribute('aria-pressed') === 'true') recognition.stop()
-  else recognition.start()
+  if (!recognition) {
+    speakText('声を聞くことができません。')
+    return
+  }
+
+  if (record.getAttribute('aria-pressed') === 'true') {
+    recognition.stop()
+    return
+  }
+
+  if (!greeted) {
+    greeted = true
+    speakText('……いるよ。')
+  }
+  recognition.start()
 })
 
-speak.addEventListener('click', () => {
-  const text = input.value.trim()
-  if (!text) return
-  speakText(text)
-  statusEl.textContent = '読み上げています。'
-})
+speak.addEventListener('click', () => speakText(input.value.trim()))
 
 form.addEventListener('submit', (event) => {
   event.preventDefault()
