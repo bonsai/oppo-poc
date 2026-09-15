@@ -1,6 +1,0 @@
-{
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "bonsai-myapp",
-  "compatibility_date": "2026-09-15",
-  "main": "./src/index.ts"
-}
