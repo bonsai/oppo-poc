@@ -41,6 +41,7 @@ const submit = document.querySelector<HTMLButtonElement>('#submit')!
 const record = document.querySelector<HTMLButtonElement>('#record')!
 const speak = document.querySelector<HTMLButtonElement>('#speak')!
 const recordingTime = document.querySelector<HTMLSpanElement>('#recording-time')!
+const point = document.querySelector<HTMLButtonElement>('#record')!
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => ({
@@ -64,14 +65,33 @@ const render = () => {
     : '<p class="empty">まだ声はありません。</p>'
 }
 
-const speakText = (text: string) => {
-  if (!('speechSynthesis' in window)) return
+const setPresence = (state: 'idle' | 'speaking' | 'listening') => {
+  point.dataset.state = state
+  point.setAttribute('aria-label', state === 'listening' ? '話すのを止める' : '話しかける')
+}
+
+const speakText = (text: string, onDone?: () => void) => {
+  if (!text || !('speechSynthesis' in window)) {
+    onDone?.()
+    return false
+  }
+
   speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = 'ja-JP'
   utterance.volume = 0.55
   utterance.rate = 0.9
+  utterance.onstart = () => setPresence('speaking')
+  utterance.onend = () => {
+    setPresence('idle')
+    onDone?.()
+  }
+  utterance.onerror = () => {
+    setPresence('idle')
+    onDone?.()
+  }
   speechSynthesis.speak(utterance)
+  return true
 }
 
 const localReply = (text: string) => `「${text}」を受け取りました。`
@@ -80,6 +100,23 @@ let recognition: SpeechRecognition | null = null
 let startedAt = 0
 let timer: number | undefined
 let greeted = false
+let awaitingReply = false
+
+const finishVoice = () => {
+  const transcript = input.value.trim()
+  if (!transcript) return
+
+  const voice: Voice = { id: crypto.randomUUID(), transcript, createdAt: new Date().toISOString() }
+  save([voice, ...load()])
+  input.value = ''
+  statusEl.textContent = ''
+  awaitingReply = true
+  speakText(localReply(transcript), () => {
+    awaitingReply = false
+    statusEl.textContent = ''
+  })
+  render()
+}
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
 if (SpeechRecognitionAPI) {
@@ -90,8 +127,7 @@ if (SpeechRecognitionAPI) {
   recognizer.interimResults = true
 
   recognizer.onstart = () => {
-    record.classList.add('recording')
-    record.setAttribute('aria-pressed', 'true')
+    setPresence('listening')
     statusEl.textContent = '聴いています…'
     startedAt = Date.now()
     timer = window.setInterval(() => {
@@ -108,6 +144,7 @@ if (SpeechRecognitionAPI) {
   }
 
   recognizer.onerror = () => {
+    setPresence('idle')
     statusEl.textContent = 'もう一度、点に触れてください。'
   }
 
@@ -117,9 +154,18 @@ if (SpeechRecognitionAPI) {
     if (timer) window.clearInterval(timer)
     timer = undefined
     recordingTime.textContent = ''
+    setPresence('idle')
+    finishVoice()
   }
 } else {
   record.title = 'このブラウザでは音声入力に対応していません'
+}
+
+const greet = () => {
+  if (greeted || awaitingReply) return
+  greeted = true
+  statusEl.textContent = ''
+  speakText('……いるよ。')
 }
 
 record.addEventListener('click', () => {
@@ -133,11 +179,12 @@ record.addEventListener('click', () => {
     return
   }
 
-  if (!greeted) {
-    greeted = true
-    speakText('……いるよ。')
+  greet()
+  try {
+    recognition.start()
+  } catch {
+    statusEl.textContent = '少し待ってから、もう一度。'
   }
-  recognition.start()
 })
 
 speak.addEventListener('click', () => speakText(input.value.trim()))
@@ -151,7 +198,8 @@ form.addEventListener('submit', (event) => {
   const voice: Voice = { id: crypto.randomUUID(), transcript, createdAt: new Date().toISOString() }
   save([voice, ...load()])
   input.value = ''
-  statusEl.textContent = '声を置きました。'
+  statusEl.textContent = ''
+  speakText(localReply(transcript))
   render()
   submit.disabled = false
 })
@@ -171,3 +219,7 @@ list.addEventListener('click', (event) => {
 })
 
 render()
+
+// Best-effort first contact. Browsers may require a user gesture; the point's
+// first tap then retries the same greeting before opening the microphone.
+window.setTimeout(greet, 500)
