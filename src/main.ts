@@ -1,3 +1,27 @@
+interface SpeechRecognitionResultEvent extends Event {
+  resultIndex: number
+  results: SpeechRecognitionResultList
+}
+
+interface SpeechRecognition extends EventTarget {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  start(): void
+  stop(): void
+  onstart: (() => void) | null
+  onresult: ((event: SpeechRecognitionResultEvent) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognition
+    webkitSpeechRecognition?: new () => SpeechRecognition
+  }
+}
+
 type Voice = {
   id: string
   transcript: string
