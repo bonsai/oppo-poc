@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>oppo — 声の掲示板</title>
+    <link rel="stylesheet" href="/oppo-poc/style.css" />
+    <script src="https://unpkg.com/htmx.org@2.0.7"></script>
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>声の掲示板</h1>
+        <p>名前もフォローもない。今日の声をひとつ。</p>
+      </header>
+
+      <section class="composer" aria-labelledby="composer-title">
+        <h2 id="composer-title">声を置く</h2>
+        <form id="voice-form" hx-on:submit="return false">
+          <textarea id="transcript" name="transcript" required maxlength="500" placeholder="いま思っていることを書いてください"></textarea>
+          <button id="submit" type="submit">声を置く</button>
+        </form>
+        <p id="status" class="status" role="status"></p>
+      </section>
+
+      <section aria-labelledby="voices-title">
+        <h2 id="voices-title">みんなの声</h2>
+        <div id="voices"></div>
+      </section>
+    </main>
+    <script type="module" src="/oppo-poc/src/main.ts"></script>
+  </body>
+</html>
