@@ -11,9 +11,9 @@
     "mastra:dev": "mastra dev"
   },
   "devDependencies": {
-    "@mastra/cli": "latest",
     "@mastra/core": "latest",
     "@types/node": "latest",
+    "mastra": "latest",
     "typescript": "latest",
     "vite": "latest",
     "vitest": "latest"
